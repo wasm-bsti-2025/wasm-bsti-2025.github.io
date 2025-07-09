@@ -1,33 +1,130 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Hello World</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Some WebAssembly Attacks</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <link rel="icon" href="inside the github repository\wasmicon.png" type="image/png">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-size: 24px;
+        }
+        .main-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .form-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #colorBox {
+            width: 50px;
+            height: 50px;
+            border: 1px solid black;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        #result {
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: white;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        label, input, textarea {
+            margin-right: 10px;
+        }
+        p {
+            margin: 10px 0 5px;
+        }
+        @media (max-width: 768px) {
+            .form-container, #result {
+                width: 95%;
+                margin-left: auto;
+                margin-right: auto;
+            }
+        }
+    </style>
 </head>
 <body>
-    <header>Website</header>
-    <p>Find the greatest number</p>
-    <div class="form-container">
-        <label for="num1">Number 1:</label>
-        <input type="number" id="num1" name="num1" required>
-        <br>
-        <label for="num2">Number 2:</label>
-        <input type="number" id="num2" name="num2" required>
-        <br>
-        <button type="button" onclick="processNum()">Submit</button>
-    </div>
-    <p>Enter some text to be echoed back</p>
-    <div class="form-container">
-        <textarea id="content" name="content" rows="5" cols="50"></textarea><br>
-        <button type="button" onclick="processText()">Submit</button>
-    </div>
-    <p>Paste a row or column of numbers from excel here</p>
-    <div class="form-container">
-        <textarea id="excel" name="excel" rows="20" cols="10"></textarea><br>
-        <button type="button" onclick="processExcel()">Submit</button>
-    </div>
-    <div id="result"></div>
-    <button type="button" onclick="executeJS()">Execute JS</button>
-    <button onclick="checkMemoryLayout()">Check Memory</button>
+    <header>Some WebAssembly Attacks</header>
+    <main class="main-container">
+        <section>
+            <p>Find the greatest number</p>
+            <div class="form-container">
+                <label for="num1">Number 1:</label>
+                <input type="number" id="num1" required>
+                <label for="num2">Number 2:</label>
+                <input type="number" id="num2" required>
+                <button type="button" onclick="processNum()">Submit</button>
+            </div>
+        </section>
+        <section>
+            <p>Enter some text to be echoed back</p>
+            <div class="form-container">
+                <textarea id="content" rows="5" cols="50"></textarea>
+                <button type="button" onclick="processText()">Submit</button>
+            </div>
+        </section>
+        <section>
+            <p>Paste a row or column of numbers from Excel here</p>
+            <div class="form-container">
+                <textarea id="excel" rows="20" cols="10"></textarea>
+                <button type="button" onclick="processExcel()">Submit</button>
+            </div>
+        </section>
+        <section>
+            <p>Enter your choice:</p>
+            <p>1. Generate a random color.</p>
+            <p>2. Generate a random number</p>
+            <div class="form-container">
+                <label for="random">Choice:</label>
+                <input type="number" id="random" required>
+                <div id="colorBox"></div>
+                <button type="button" onclick="processRandom()">Submit</button>
+            </div>
+        </section>
+        <div id="result"></div>
+        <div class="button-container">
+            <button type="button" onclick="executeJS()">Execute JS</button>
+            <button onclick="checkMemoryLayout()">Check Memory</button>
+        </div>
+    </main>
     <script src="helloworld.js"></script>
     <script>
         Module.onRuntimeInitialized = () => {
@@ -38,7 +135,6 @@
         function processNum() {
             const num1 = parseInt(document.getElementById('num1').value);
             const num2 = parseInt(document.getElementById('num2').value);
-
             const result = Module.ccall('processNum', 'number', ['number', 'number'], [num1, num2]);
             document.getElementById('result').innerText = `The greater number is: ${result}`;
         }
@@ -51,12 +147,23 @@
 
         function processExcel() {
             const text = document.getElementById('excel').value;
-
             const normalizedText = text.replace(/\r\n|\r/g, '\n');
             const result = Module.ccall('processExcel', 'string', ['string'], [normalizedText]);
-
             document.getElementById('result').innerText = `The mean is: ${result}`;
         }
+
+    function processRandom() {
+        const random = parseInt(document.getElementById('random').value);
+        Module.ccall('set_global_num', null, ['number'], [random]);
+        const resultPtr = Module.ccall('execute_operation', 'number', [], []);
+        const result = Module.UTF8ToString(resultPtr);
+        document.getElementById('result').innerText = `Result: ${result}`;
+        if (random === 1) {
+            document.getElementById('colorBox').style.backgroundColor = `#${result}`;
+        } else {
+            document.getElementById('colorBox').style.backgroundColor = '';
+        }
+    }
 
         function executeJS() {
             Module.ccall('execute_js', null, [], []);
@@ -65,6 +172,7 @@
         function checkMemoryLayout() {
             Module.ccall('print_addresses', null, [], []);
         }
+
     </script>
 </body>
 </html>
